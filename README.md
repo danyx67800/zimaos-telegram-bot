@@ -60,7 +60,8 @@ Il tuo ID Telegram lo trovi scrivendo a [@userinfobot](https://t.me/userinfobot)
 
 Il `docker-compose.yml` monta:
 
-- `./data:/data` — persistenza del database SQLite;
+- un **named volume** `bot-data` su `/data` — persistenza del database SQLite
+  (sempre scrivibile, indipendente dai path dell'host);
 - `/var/run/docker.sock:/var/run/docker.sock:ro` — accesso in sola lettura a
   Docker per il comando `/docker`.
 
@@ -127,6 +128,18 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python main.py
 ```
+
+## 🩺 Risoluzione problemi
+
+**`sqlite3.OperationalError: database or disk is full`**
+
+Significa che il container non riesce a scrivere il database in `/data`.
+Verifica:
+
+1. Che ci sia **spazio libero su disco** (da SSH su ZimaOS: `df -h`);
+2. Che il volume dati sia scrivibile. Se hai modificato `docker-compose.yml`,
+   assicurati che il named volume `bot-data` sia dichiarato (sezione `volumes:`
+   in fondo al file).
 
 ## 🔒 Sicurezza
 

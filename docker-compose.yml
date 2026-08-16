@@ -15,10 +15,14 @@ services:
       - PING_TIMEOUT=5
       - LOG_LEVEL=INFO
     volumes:
-      # Persistenza del database SQLite.
-      - ./data:/data
+      # Persistenza del database SQLite (named volume: sempre scrivibile,
+      # indipendente dai path dell'host).
+      - bot-data:/data
       # Accesso in sola lettura al socket Docker per il comando /docker.
       - /var/run/docker.sock:/var/run/docker.sock:ro
+
+volumes:
+  bot-data:
 
 x-casaos:
   id: com.danyx67800.zimaos-telegram-bot

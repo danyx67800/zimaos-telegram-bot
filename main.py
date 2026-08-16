@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sqlite3
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -35,7 +36,17 @@ async def main() -> None:
     dp.update.outer_middleware(AccessControlMiddleware(settings.allowed_user_ids))
 
     # Dipendenze condivise, iniettate negli handler tramite DI di aiogram.
-    db = Database(settings.db_path)
+    try:
+        db = Database(settings.db_path)
+    except sqlite3.OperationalError as exc:
+        logger.error(
+            "Impossibile inizializzare il database SQLite in %s: %s. "
+            "Verifica che il volume /data sia scrivibile e che ci sia "
+            "spazio libero su disco.",
+            settings.db_path,
+            exc,
+        )
+        raise SystemExit(1) from exc
     dp["db"] = db
     dp["settings"] = settings
 
