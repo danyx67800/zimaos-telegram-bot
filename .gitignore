@@ -1,5 +1,6 @@
-# Il file .env è VOLUTAMENTE tracciato: contiene solo i DEFAULT usati
-# dallo store ZimaOS/CasaOS. NON committare mai il token reale al suo interno.
+# Segreti
+.env
+.env.local
 
 # Interno dell'ambiente Freebuff
 .freebuff/

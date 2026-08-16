@@ -1,25 +1,4 @@
-# Metadati per lo store ZimaOS/CasaOS (estensione "x-casaos", ignorata da Docker).
-x-casaos:
-  architectures:
-    - amd64
-    - arm64
-  main: telegram-bot
-  author: danyx67800
-  category: Utilities
-  description:
-    en_us: "Private Telegram bot to monitor and manage your ZimaOS server (CPU, RAM, disks, uptime, Docker containers, notes and ping)."
-    it_it: "Bot Telegram privato per monitorare e gestire il tuo server ZimaOS (CPU, RAM, dischi, uptime, container Docker, note e ping)."
-  developer: danyx67800
-  icon: https://raw.githubusercontent.com/danyx67800/zimaos-telegram-bot/main/logo.png
-  tagline:
-    en_us: "Monitor and control ZimaOS from Telegram."
-    it_it: "Monitora e controlla ZimaOS da Telegram."
-  title:
-    en_us: ZimaOS Telegram Bot
-  tips:
-    before_install:
-      en_us: "Fill TELEGRAM_BOT_TOKEN and ALLOWED_USER_IDS (comma-separated Telegram user IDs) before installing."
-      it_it: "Compila TELEGRAM_BOT_TOKEN e ALLOWED_USER_IDS (ID Telegram separati da virgola) prima dell'installazione."
+name: zimaos-telegram-bot
 
 services:
   telegram-bot:
@@ -27,10 +6,45 @@ services:
     image: ghcr.io/danyx67800/zimaos-telegram-bot:latest
     container_name: zima-telegram-bot
     restart: unless-stopped
-    env_file:
-      - .env
+    # Variabili dichiarate INLINE (niente env_file): ZimaOS/CasaOS le mostra
+    # come campi modificabili nel form di installazione.
+    environment:
+      - TELEGRAM_BOT_TOKEN=INSERISCI_QUI_IL_TOKEN # obbligatorio (da @BotFather)
+      - ALLOWED_USER_IDS=123456789 # obbligatorio (ID Telegram separati da virgola)
+      - DB_PATH=/data/bot.db
+      - PING_TIMEOUT=5
+      - LOG_LEVEL=INFO
     volumes:
       # Persistenza del database SQLite.
       - ./data:/data
       # Accesso in sola lettura al socket Docker per il comando /docker.
       - /var/run/docker.sock:/var/run/docker.sock:ro
+
+x-casaos:
+  id: com.danyx67800.zimaos-telegram-bot
+  architectures:
+    - amd64
+    - arm64
+  main: telegram-bot
+  author: danyx67800
+  category: Utilities
+  description:
+    en_US: "Private Telegram bot to monitor and manage your ZimaOS server (CPU, RAM, disks, uptime, Docker containers, notes and ping)."
+    it_IT: "Bot Telegram privato per monitorare e gestire il tuo server ZimaOS (CPU, RAM, dischi, uptime, container Docker, note e ping)."
+  developer: danyx67800
+  icon: https://raw.githubusercontent.com/danyx67800/zimaos-telegram-bot/main/logo.png
+  tagline:
+    en_US: "Monitor and control ZimaOS from Telegram."
+    it_IT: "Monitora e controlla ZimaOS da Telegram."
+  title:
+    en_US: ZimaOS Telegram Bot
+  tips:
+    before_install:
+      en_US: |
+        Fill in the two mandatory environment variables:
+        - TELEGRAM_BOT_TOKEN: the token from @BotFather
+        - ALLOWED_USER_IDS: your Telegram user IDs, comma-separated
+      it_IT: |
+        Compila le due variabili d'ambiente obbligatorie:
+        - TELEGRAM_BOT_TOKEN: il token ottenuto da @BotFather
+        - ALLOWED_USER_IDS: i tuoi ID Telegram, separati da virgola
