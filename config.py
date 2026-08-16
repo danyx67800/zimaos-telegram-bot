@@ -28,6 +28,8 @@ class Settings:
     db_path: Path
     ping_timeout: float
     log_level: str
+    downloads_dir: Path
+    pastes_dir: Path
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -60,6 +62,11 @@ class Settings:
 
         db_path = Path(os.getenv("DB_PATH", "/data/bot.db")).expanduser()
 
+        # Directory per i file scaricati e per i log/paste. Nel container
+        # coincidono con /app/downloads e /app/pastes (volume del compose).
+        downloads_dir = Path(os.getenv("DOWNLOADS_DIR", BASE_DIR / "downloads")).expanduser()
+        pastes_dir = Path(os.getenv("PASTES_DIR", BASE_DIR / "pastes")).expanduser()
+
         try:
             ping_timeout = float(os.getenv("PING_TIMEOUT", "5"))
         except ValueError as exc:
@@ -75,4 +82,6 @@ class Settings:
             db_path=db_path,
             ping_timeout=ping_timeout,
             log_level=log_level,
+            downloads_dir=downloads_dir,
+            pastes_dir=pastes_dir,
         )

@@ -24,10 +24,17 @@ WORKDIR /app
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
+# ffmpeg: richiesto da yt-dlp per la conversione MP3 e l'unione dei flussi.
+# tzdata: necessario per il fuso orario del container (TZ).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY . .
 
-# Directory per il database SQLite (montata come volume dal compose).
-RUN mkdir -p /data
+# Directory dati (database SQLite, download e paste).
+RUN mkdir -p /data /app/downloads /app/pastes
 
 # Il bot viene eseguito come root per poter leggere /var/run/docker.sock (ro).
 # Per un profilo più restrittivo vedere le note nel README.

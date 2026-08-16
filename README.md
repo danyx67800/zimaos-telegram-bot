@@ -16,6 +16,16 @@ in un container Docker.
   - `/notes del <id>` → elimina
 - `/ping <host o URL>` — latenza e disponibilità (TCP connect).
 - `/docker` — stato dei container dell'host (richiede il socket Docker).
+- `/dl <URL>` — media downloader (YouTube, Twitter/X, TikTok, Instagram,
+  Reddit e altri): i link inviati in chat vengono riconosciuti
+  automaticamente; formato audio MP3 o video MP4, invio in chat (fino a
+  50 MB) o salvataggio su ZimaOS.
+- `/remind <tempo> <messaggio>` — promemoria (30m, 2h, 1d, 18:30, domani
+  09:00); `/remind_cron "*/30 * * * *" msg` per quelli ricorrenti;
+  `/reminders` e `/delremind <id>` per gestirli (persistiti su SQLite).
+- `/paste <testo>` — pastebin locale: testo o messaggi molto lunghi in file
+  `.txt` scaricabili; i file `.log`/`.txt` inviati in chat vengono riassunti,
+  salvati su ZimaOS e cercabili con `/searchlog <keyword>`.
 
 ## 📁 Struttura del progetto
 
@@ -32,12 +42,18 @@ in un container Docker.
 │   ├── sysinfo.py          # /stats
 │   ├── notes.py            # /notes
 │   ├── ping.py             # /ping
-│   └── docker_handler.py   # /docker
+│   ├── docker_handler.py   # /docker
+│   ├── downloader.py       # /dl + riconoscimento URL media
+│   ├── reminders.py        # /remind, /remind_cron, /delremind
+│   └── pastebin.py         # /paste, /searchlog, file di log
+├── services/
+│   └── scheduler.py        # promemoria (APScheduler + SQLite)
 └── utils/
     ├── db.py               # SQLite
     ├── sysinfo.py          # psutil
     ├── network.py          # ping TCP
-    └── docker_stats.py     # API socket Docker
+    ├── docker_stats.py     # API socket Docker
+    └── media_downloader.py # download via yt-dlp
 ```
 
 ## ⚙️ Configurazione
@@ -62,8 +78,14 @@ Il `docker-compose.yml` monta:
 
 - un **named volume** `bot-data` su `/data` — persistenza del database SQLite
   (sempre scrivibile, indipendente dai path dell'host);
+- `./downloads:/app/downloads` — file scaricati con `/dl`;
+- `./pastes:/app/pastes` — file salvati dal pastebin;
 - `/var/run/docker.sock:/var/run/docker.sock:ro` — accesso in sola lettura a
-  Docker per il comando `/docker`.
+  Docker per il comando `/docker`;
+- `TZ=Europe/Rome` — fuso orario del container (usato dai promemoria).
+
+> **Nota**: il download media richiede `ffmpeg`, già installato nell'immagine
+> Docker (`yt-dlp` lo usa per MP3 e per unire i flussi video/audio).
 
 ```bash
 # 1. Compila TELEGRAM_BOT_TOKEN e ALLOWED_USER_IDS nel campo

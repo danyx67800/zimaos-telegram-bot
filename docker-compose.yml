@@ -12,12 +12,18 @@ services:
       - TELEGRAM_BOT_TOKEN=INSERISCI_QUI_IL_TOKEN # obbligatorio (da @BotFather)
       - ALLOWED_USER_IDS=123456789 # obbligatorio (ID Telegram separati da virgola)
       - DB_PATH=/data/bot.db
+      - DOWNLOADS_DIR=/app/downloads
+      - PASTES_DIR=/app/pastes
       - PING_TIMEOUT=5
+      - TZ=Europe/Rome
       - LOG_LEVEL=INFO
     volumes:
       # Persistenza del database SQLite (named volume: sempre scrivibile,
       # indipendente dai path dell'host).
       - bot-data:/data
+      # File scaricati con /dl e file salvati dal modulo pastebin.
+      - ./downloads:/app/downloads
+      - ./pastes:/app/pastes
       # Accesso in sola lettura al socket Docker per il comando /docker.
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
@@ -33,8 +39,8 @@ x-casaos:
   author: danyx67800
   category: Utilities
   description:
-    en_US: "Private Telegram bot to monitor and manage your ZimaOS server (CPU, RAM, disks, uptime, Docker containers, notes and ping)."
-    it_IT: "Bot Telegram privato per monitorare e gestire il tuo server ZimaOS (CPU, RAM, dischi, uptime, container Docker, note e ping)."
+    en_US: "Private Telegram bot to monitor and manage your ZimaOS server (stats, Docker, notes, ping, media downloads, reminders and log pastebin)."
+    it_IT: "Bot Telegram privato per monitorare e gestire il tuo server ZimaOS (statistiche, Docker, note, ping, download media, promemoria e pastebin log)."
   developer: danyx67800
   icon: https://raw.githubusercontent.com/danyx67800/zimaos-telegram-bot/main/logo.png
   tagline:

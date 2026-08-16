@@ -11,8 +11,18 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from config import ConfigError, Settings
-from handlers import docker_handler, general, notes, ping, sysinfo
+from handlers import (
+    docker_handler,
+    downloader,
+    general,
+    notes,
+    pastebin,
+    ping,
+    reminders,
+    sysinfo,
+)
 from middlewares.access import AccessControlMiddleware
+from services.scheduler import ReminderService
 from utils.db import Database
 
 
@@ -50,12 +60,25 @@ async def main() -> None:
     dp["db"] = db
     dp["settings"] = settings
 
-    # Router dei comandi, suddivisi per funzionalità.
+    # Directory per download e paste (create se assenti).
+    settings.downloads_dir.mkdir(parents=True, exist_ok=True)
+    settings.pastes_dir.mkdir(parents=True, exist_ok=True)
+
+    # Servizio promemoria (APScheduler), condiviso via DI.
+    reminder_service = ReminderService(bot, db)
+    dp["scheduler"] = reminder_service
+    reminder_service.start()
+
+    # Router dei comandi, suddivisi per funzionalità. L'ordine conta:
+    # downloader prima di pastebin (i messaggi con URL media vincono).
     dp.include_router(general.router)
     dp.include_router(sysinfo.router)
     dp.include_router(notes.router)
     dp.include_router(ping.router)
     dp.include_router(docker_handler.router)
+    dp.include_router(downloader.router)
+    dp.include_router(reminders.router)
+    dp.include_router(pastebin.router)
 
     # Scarta gli update accumulati mentre il bot era offline.
     await bot.delete_webhook(drop_pending_updates=True)
@@ -64,7 +87,10 @@ async def main() -> None:
         "Bot avviato. Utenti autorizzati: %s",
         ", ".join(str(uid) for uid in sorted(settings.allowed_user_ids)),
     )
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        reminder_service.shutdown()
 
 
 if __name__ == "__main__":

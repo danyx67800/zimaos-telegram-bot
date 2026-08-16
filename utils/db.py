@@ -40,6 +40,19 @@ class Database:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reminders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    message TEXT NOT NULL,
+                    run_at TEXT,
+                    cron_expr TEXT,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
             conn.commit()
 
     def add_note(self, user_id: int, content: str) -> int:
@@ -89,3 +102,57 @@ class Database:
                 (user_id,),
             ).fetchone()
         return int(row["c"])
+
+    # ------------------------------------------------------------------
+    # Promemoria
+    # ------------------------------------------------------------------
+
+    def add_reminder(
+        self,
+        user_id: int,
+        chat_id: int,
+        message: str,
+        run_at: str | None = None,
+        cron_expr: str | None = None,
+    ) -> int:
+        """Salva un promemoria (one-shot o cron) e restituisce il suo ID."""
+        created_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        with self._lock, closing(self._connect()) as conn:
+            cur = conn.execute(
+                "INSERT INTO reminders "
+                "(user_id, chat_id, message, run_at, cron_expr, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (user_id, chat_id, message, run_at, cron_expr, created_at),
+            )
+            conn.commit()
+            return int(cur.lastrowid)
+
+    def list_reminders(self, user_id: int) -> list[dict]:
+        """Promemoria attivi dell'utente, dal più imminente."""
+        with self._lock, closing(self._connect()) as conn:
+            rows = conn.execute(
+                "SELECT id, user_id, chat_id, message, run_at, cron_expr "
+                "FROM reminders WHERE user_id = ? "
+                "ORDER BY COALESCE(run_at, '9999') ASC, id ASC",
+                (user_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def all_reminders(self) -> list[dict]:
+        """Tutti i promemoria (per il ripristino dello scheduler all'avvio)."""
+        with self._lock, closing(self._connect()) as conn:
+            rows = conn.execute(
+                "SELECT id, user_id, chat_id, message, run_at, cron_expr "
+                "FROM reminders"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def delete_reminder(self, user_id: int, reminder_id: int) -> bool:
+        """Elimina un promemoria dell'utente; True se esisteva."""
+        with self._lock, closing(self._connect()) as conn:
+            cur = conn.execute(
+                "DELETE FROM reminders WHERE id = ? AND user_id = ?",
+                (reminder_id, user_id),
+            )
+            conn.commit()
+            return cur.rowcount > 0
