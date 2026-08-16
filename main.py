@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 import sqlite3
+import tempfile
+from pathlib import Path
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -24,6 +27,23 @@ from handlers import (
 from middlewares.access import AccessControlMiddleware
 from services.scheduler import ReminderService
 from utils.db import Database
+
+
+def _disk_usage_text(path: Path) -> str:
+    """Descrive lo spazio libero sul filesystem che contiene `path`."""
+    try:
+        total, used, free = shutil.disk_usage(path)
+    except OSError:
+        return ""
+
+    def fmt(num: float) -> str:
+        for unit in ("B", "KB", "MB", "GB", "TB"):
+            if abs(num) < 1024.0:
+                return f"{num:.1f} {unit}"
+            num /= 1024.0
+        return f"{num:.1f} PB"
+
+    return f"Spazio su {path}: {fmt(free)} liberi di {fmt(total)}"
 
 
 async def main() -> None:
@@ -50,13 +70,25 @@ async def main() -> None:
         db = Database(settings.db_path)
     except sqlite3.OperationalError as exc:
         logger.error(
-            "Impossibile inizializzare il database SQLite in %s: %s. "
-            "Verifica che il volume /data sia scrivibile e che ci sia "
-            "spazio libero su disco.",
+            "Impossibile inizializzare il database SQLite in %s: %s. %s",
             settings.db_path,
             exc,
+            _disk_usage_text(settings.db_path.parent),
         )
-        raise SystemExit(1) from exc
+        # Fallback: mantiene il bot attivo anche se il volume dati è pieno.
+        fallback_path = Path(tempfile.gettempdir()) / "zima-bot-fallback.db"
+        logger.warning(
+            "Uso il database di fallback %s: note e promemoria NON persisteranno. "
+            "Libera spazio su disco il prima possibile!",
+            fallback_path,
+        )
+        try:
+            db = Database(fallback_path)
+        except sqlite3.OperationalError:
+            logger.error(
+                "Anche il fallback non è scrivibile: il disco è davvero pieno."
+            )
+            raise SystemExit(1) from exc
     dp["db"] = db
     dp["settings"] = settings
 
