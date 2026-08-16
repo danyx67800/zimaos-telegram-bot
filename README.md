@@ -67,12 +67,7 @@ Il `docker-compose.yml` monta:
   Docker per il comando `/docker`.
 
 ```bash
-docker compose up -d --build
-```
-
-Oppure tira giù l'immagine già pubblicata su GHCR:
-
-```bash
+cp .env.example .env   # compila token e ID utente
 docker compose pull
 docker compose up -d
 ```
@@ -82,6 +77,24 @@ docker compose up -d
 > container con un utente che appartenga al gruppo `docker` dell'host, ad es.
 > aggiungendo al servizio `user: "1000:1000"` e verificando che il GID 1000
 > corrisponda al gruppo `docker`.
+
+## 🛍 Installazione dallo store ZimaOS
+
+Il repository è già predisposto come app dello store ZimaOS/CasaOS: include il
+file `.env` (default mostrati nel form di installazione), il blocco `x-casaos`
+nel `docker-compose.yml` e l'icona `logo.png`.
+
+1. Nello store ZimaOS usa **Install customized app** e importa il repo
+   `https://github.com/danyx67800/zimaos-telegram-bot`.
+2. Nel form di installazione compila **obbligatoriamente**:
+   - `TELEGRAM_BOT_TOKEN` — il token del bot (da @BotFather);
+   - `ALLOWED_USER_IDS` — i tuoi ID Telegram, separati da virgola.
+3. Avvia l'app.
+
+> ⚠️ Il file `.env` nel repo contiene solo **valori di default** ed è tracciato
+> perché lo store lo richiede all'installazione. Non committare mai il token
+> reale: inseriscilo solo dal form di ZimaOS oppure nel `.env` locale senza
+> fare push.
 
 ## 📦 Pubblicazione su GitHub Container Registry (GHCR)
 
@@ -117,8 +130,9 @@ python main.py
 
 ## 🔒 Sicurezza
 
-- Il token e la lista degli utenti autorizzati vivono solo in `.env`
-  (mai committato, vedi `.gitignore`).
+- Il token e la lista degli utenti autorizzati vanno inseriti **solo in
+  locale** (form di ZimaOS o `.env` locale): il `.env` presente nel repo
+  contiene esclusivamente default segnaposto per lo store.
 - Il middleware di accesso rifiuta ogni update non autorizzato **prima** che
   venga eseguito qualsiasi filtro o handler, restituendo un messaggio d'errore.
 - Il socket Docker è montato **in sola lettura**.

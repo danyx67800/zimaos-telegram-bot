@@ -1,6 +1,29 @@
+# Metadati per lo store ZimaOS/CasaOS (estensione "x-casaos", ignorata da Docker).
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: telegram-bot
+  author: danyx67800
+  category: Utilities
+  description:
+    en_us: "Private Telegram bot to monitor and manage your ZimaOS server (CPU, RAM, disks, uptime, Docker containers, notes and ping)."
+    it_it: "Bot Telegram privato per monitorare e gestire il tuo server ZimaOS (CPU, RAM, dischi, uptime, container Docker, note e ping)."
+  developer: danyx67800
+  icon: https://raw.githubusercontent.com/danyx67800/zimaos-telegram-bot/main/logo.png
+  tagline:
+    en_us: "Monitor and control ZimaOS from Telegram."
+    it_it: "Monitora e controlla ZimaOS da Telegram."
+  title:
+    en_us: ZimaOS Telegram Bot
+  tips:
+    before_install:
+      en_us: "Fill TELEGRAM_BOT_TOKEN and ALLOWED_USER_IDS (comma-separated Telegram user IDs) before installing."
+      it_it: "Compila TELEGRAM_BOT_TOKEN e ALLOWED_USER_IDS (ID Telegram separati da virgola) prima dell'installazione."
+
 services:
   telegram-bot:
-    build: .
+    # Immagine già pubblicata su GHCR (build automatico a ogni push su main).
     image: ghcr.io/danyx67800/zimaos-telegram-bot:latest
     container_name: zima-telegram-bot
     restart: unless-stopped
