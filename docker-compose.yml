@@ -1,0 +1,13 @@
+services:
+  telegram-bot:
+    build: .
+    image: ghcr.io/danyx67800/zimaos-telegram-bot:latest
+    container_name: zima-telegram-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Persistenza del database SQLite.
+      - ./data:/data
+      # Accesso in sola lettura al socket Docker per il comando /docker.
+      - /var/run/docker.sock:/var/run/docker.sock:ro

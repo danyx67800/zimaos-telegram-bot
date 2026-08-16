@@ -1,0 +1,23 @@
+# Segreti
+.env
+
+# Interno dell'ambiente Freebuff
+.freebuff/
+
+# Dati locali
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Tooling
+.idea/
+.vscode/

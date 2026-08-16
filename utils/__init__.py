@@ -1,0 +1,1 @@
+"""Funzioni ausiliarie del bot."""
