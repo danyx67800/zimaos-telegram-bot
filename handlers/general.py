@@ -19,7 +19,10 @@ WELCOME_TEXT = (
     "📊 <code>/stats</code> — monitoraggio di sistema\n"
     "📝 <code>/notes</code> — note rapide e link\n"
     "📶 <code>/ping</code> — latenza di un host/URL\n"
-    "🐳 <code>/docker</code> — stato dei container"
+    "🐳 <code>/docker</code> — stato dei container\n"
+    "🎥 <code>/dl</code> — scarica video/audio (YouTube, TikTok, IG…)\n"
+    "⏰ <code>/remind</code> — promemoria e timer\n"
+    "📄 <code>/paste</code> — pastebin e gestione log"
 )
 
 # Descrizioni mostrate quando si preme un pulsante della sezione.
@@ -48,6 +51,35 @@ SECTION_INFO = {
         "sull'host. Richiede il mount del socket "
         "<code>/var/run/docker.sock</code>."
     ),
+    "downloader": (
+        "🎥 <b>Media Downloader</b>\n\n"
+        "Invia un link (YouTube, Twitter/X, TikTok, Instagram, Reddit) "
+        "oppure usa <code>/dl &lt;URL&gt;</code>.\n\n"
+        "Puoi scegliere:\n"
+        "• 🎵 Solo Audio (MP3)\n"
+        "• 🎬 Video (MP4)\n\n"
+        "Destinazione: 📱 chat Telegram oppure 💾 cartella "
+        "<code>/app/downloads</code> su ZimaOS.\n"
+        "I file oltre 50 MB vengono salvati automaticamente sul server."
+    ),
+    "reminders": (
+        "⏰ <b>Promemoria &amp; Timer</b>\n\n"
+        "<code>/remind 30m fai il backup</code> — tra 30 minuti\n"
+        "<code>/remind 18:30 cena</code> — oggi alle 18:30\n"
+        "<code>/remind domani 09:00 sveglia</code>\n"
+        "<code>/remind_cron \"0 3 * * *\" backup</code> — ricorrente\n\n"
+        "<code>/reminders</code> — elenca i promemoria attivi\n"
+        "<code>/delremind &lt;id&gt;</code> — cancella un promemoria"
+    ),
+    "pastebin": (
+        "📄 <b>Pastebin &amp; Gestione Log</b>\n\n"
+        "<code>/paste &lt;testo o codice&gt;</code> — file .txt "
+        "scaricabile (funziona anche con messaggi molto lunghi).\n"
+        "Invia un file <code>.log</code>/<code>.txt</code> per vedere "
+        "un riepilogo (prime/ultime righe).\n"
+        "<code>/searchlog &lt;keyword&gt;</code> — cerca nel log inviato.\n\n"
+        "I file si salvano in <code>/app/pastes</code> su ZimaOS."
+    ),
 }
 
 
@@ -61,6 +93,13 @@ def _menu_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(text="📶 Ping", callback_data="section:ping"),
                 InlineKeyboardButton(text="🐳 Docker", callback_data="section:docker"),
+            ],
+            [
+                InlineKeyboardButton(text="🎥 Download", callback_data="section:downloader"),
+                InlineKeyboardButton(text="⏰ Promemoria", callback_data="section:reminders"),
+            ],
+            [
+                InlineKeyboardButton(text="📄 Pastebin", callback_data="section:pastebin"),
             ],
         ]
     )
