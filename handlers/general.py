@@ -14,8 +14,8 @@ from aiogram.types import (
 )
 
 from handlers.docker_handler import send_docker_status
-from handlers.notes import save_note
-from handlers.reminders import add_reminder
+from handlers.notes import save_note, send_notes_list
+from handlers.reminders import add_reminder, send_reminders_list
 from handlers.sysinfo import send_stats
 from services.scheduler import ReminderService
 from utils.db import Database
@@ -159,11 +159,15 @@ def _menu_keyboard() -> InlineKeyboardMarkup:
             # ⚡ Azioni rapide: eseguono subito il comando.
             [
                 InlineKeyboardButton(text="⚡ Stats", callback_data="quick:stats"),
-                InlineKeyboardButton(text="⚡ Nuova nota", callback_data="quick:notes"),
+                InlineKeyboardButton(text="⚡ Docker", callback_data="quick:docker"),
             ],
             [
-                InlineKeyboardButton(text="⚡ Docker", callback_data="quick:docker"),
+                InlineKeyboardButton(text="⚡ Nuova nota", callback_data="quick:notes"),
+                InlineKeyboardButton(text="⚡ Elenca note", callback_data="quick:list_notes"),
+            ],
+            [
                 InlineKeyboardButton(text="⚡ Nuovo promemoria", callback_data="quick:reminders"),
+                InlineKeyboardButton(text="⚡ Elenca promemoria", callback_data="quick:list_reminders"),
             ],
             # ℹ️ Guide per i comandi che richiedono argomenti.
             [
@@ -234,10 +238,14 @@ async def quick_callback(callback: CallbackQuery, db: Database) -> None:
         await send_stats(message)
     elif action == "notes":
         await _ask_for_note(message, user_id)
+    elif action == "list_notes":
+        await send_notes_list(message, db, user_id)
     elif action == "docker":
         await send_docker_status(message)
     elif action == "reminders":
         await _ask_for_reminder(message, user_id)
+    elif action == "list_reminders":
+        await send_reminders_list(message, db)
     else:
         await callback.answer("Azione sconosciuta.", show_alert=True)
         return
