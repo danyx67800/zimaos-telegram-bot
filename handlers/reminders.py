@@ -32,18 +32,13 @@ def _format_run_at(run_at: str) -> str:
         return run_at
 
 
-@router.message(Command("remind"))
-async def cmd_remind(
-    message: Message,
-    command: CommandObject,
-    scheduler: ReminderService,
-) -> None:
+async def add_reminder(message: Message, scheduler: ReminderService, spec_text: str) -> None:
+    """Parsa '<tempo> <messaggio>' e crea un promemoria (usato da /remind e dal menù rapido)."""
     user_id = message.from_user.id
     if user_id is None:
         return
 
-    args = (command.args or "").strip()
-    parts = args.split(maxsplit=1)
+    parts = spec_text.strip().split(maxsplit=1)
     if len(parts) < 2 or not parts[1].strip():
         await message.answer(USAGE_REMIND)
         return
@@ -68,6 +63,15 @@ async def cmd_remind(
         f"🕐 <b>{run_at.strftime('%d/%m/%Y %H:%M')}</b>\n"
         f"📝 {reminder_text}"
     )
+
+
+@router.message(Command("remind"))
+async def cmd_remind(
+    message: Message,
+    command: CommandObject,
+    scheduler: ReminderService,
+) -> None:
+    await add_reminder(message, scheduler, command.args or "")
 
 
 @router.message(Command("remind_cron"))

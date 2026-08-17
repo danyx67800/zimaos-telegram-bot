@@ -55,6 +55,18 @@ async def _delete_note(
         await message.answer(f"❌ Nessuna nota con ID <b>#{note_id}</b> trovata.")
 
 
+async def save_note(message: Message, db: Database, user_id: int, content: str) -> None:
+    """Salva una nota e risponde all'utente (usato da /notes add e dal menù rapido)."""
+    content = content.strip()
+    if not content:
+        await message.answer(
+            "❌ Usa: <code>/notes add &lt;testo o link&gt;</code>"
+        )
+        return
+    note_id = db.add_note(user_id, content)
+    await message.answer(f"✅ Nota <b>#{note_id}</b> salvata.")
+
+
 @router.message(Command("notes"))
 async def cmd_notes(
     message: Message, command: CommandObject, db: Database
@@ -70,14 +82,7 @@ async def cmd_notes(
     sub = parts[0].lower()
 
     if sub == "add":
-        content = parts[1].strip() if len(parts) > 1 else ""
-        if not content:
-            await message.answer(
-                "❌ Usa: <code>/notes add &lt;testo o link&gt;</code>"
-            )
-            return
-        note_id = db.add_note(user_id, content)
-        await message.answer(f"✅ Nota <b>#{note_id}</b> salvata.")
+        await save_note(message, db, user_id, parts[1] if len(parts) > 1 else "")
         return
 
     if sub in ("del", "delete", "rm"):

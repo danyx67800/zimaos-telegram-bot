@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import time
+
 from aiogram import F, Router
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, Filter
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -12,9 +14,10 @@ from aiogram.types import (
 )
 
 from handlers.docker_handler import send_docker_status
-from handlers.notes import send_notes_list
-from handlers.reminders import send_reminders_list
+from handlers.notes import save_note
+from handlers.reminders import add_reminder
 from handlers.sysinfo import send_stats
+from services.scheduler import ReminderService
 from utils.db import Database
 
 router = Router(name="general")
@@ -90,6 +93,65 @@ SECTION_INFO = {
     ),
 }
 
+# Stato delle azioni rapide in attesa di un messaggio dell'utente.
+# user_id -> (azione, timestamp). Scade dopo _PENDING_TTL_SECONDS.
+_PENDING_TTL_SECONDS = 10 * 60
+_pending_actions: dict[int, tuple[str, float]] = {}
+
+
+def _set_pending(user_id: int, action: str) -> None:
+    _pending_actions[user_id] = (action, time.time())
+
+
+def _get_pending(user_id: int) -> str | None:
+    entry = _pending_actions.get(user_id)
+    if entry is None:
+        return None
+    action, started = entry
+    if time.time() - started > _PENDING_TTL_SECONDS:
+        _pending_actions.pop(user_id, None)
+        return None
+    return action
+
+
+def _clear_pending(user_id: int) -> None:
+    _pending_actions.pop(user_id, None)
+
+
+class HasPendingAction(Filter):
+    """Scatta quando l'utente ha un'azione rapida in attesa (esclusi i comandi)."""
+
+    def __init__(self, action: str) -> None:
+        self.action = action
+
+    async def __call__(self, message: Message) -> bool:
+        if message.text is None or message.text.startswith("/"):
+            return False
+        if message.from_user is None:
+            return False
+        return _get_pending(message.from_user.id) == self.action
+
+
+async def _ask_for_note(message: Message, user_id: int) -> None:
+    _set_pending(user_id, "note")
+    await message.answer(
+        "📝 <b>Nuova nota</b>\n\n"
+        "Inviami il testo o il link da salvare.\n"
+        "(<code>/cancel</code> per annullare)"
+    )
+
+
+async def _ask_for_reminder(message: Message, user_id: int) -> None:
+    _set_pending(user_id, "remind")
+    await message.answer(
+        "⏰ <b>Nuovo promemoria</b>\n\n"
+        "Inviami <code>&lt;tempo&gt; &lt;messaggio&gt;</code>, es.:\n"
+        "<code>30m fai il backup</code>\n"
+        "<code>18:30 cena</code>\n"
+        "<code>domani 09:00 sveglia</code>\n\n"
+        "(<code>/cancel</code> per annullare)"
+    )
+
 
 def _menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -97,11 +159,11 @@ def _menu_keyboard() -> InlineKeyboardMarkup:
             # ⚡ Azioni rapide: eseguono subito il comando.
             [
                 InlineKeyboardButton(text="⚡ Stats", callback_data="quick:stats"),
-                InlineKeyboardButton(text="⚡ Note", callback_data="quick:notes"),
+                InlineKeyboardButton(text="⚡ Nuova nota", callback_data="quick:notes"),
             ],
             [
                 InlineKeyboardButton(text="⚡ Docker", callback_data="quick:docker"),
-                InlineKeyboardButton(text="⚡ Promemoria", callback_data="quick:reminders"),
+                InlineKeyboardButton(text="⚡ Nuovo promemoria", callback_data="quick:reminders"),
             ],
             # ℹ️ Guide per i comandi che richiedono argomenti.
             [
@@ -134,9 +196,31 @@ async def cmd_help(message: Message) -> None:
     await message.answer(WELCOME_TEXT, reply_markup=_menu_keyboard())
 
 
+@router.message(Command("cancel"))
+async def cmd_cancel(message: Message) -> None:
+    user_id = message.from_user.id if message.from_user else None
+    if user_id is not None:
+        _clear_pending(user_id)
+    await message.answer("↩️ Azione annullata.")
+
+
+@router.message(HasPendingAction("note"))
+async def capture_note(message: Message, db: Database) -> None:
+    user_id = message.from_user.id
+    _clear_pending(user_id)
+    await save_note(message, db, user_id, message.text or "")
+
+
+@router.message(HasPendingAction("remind"))
+async def capture_reminder(message: Message, scheduler: ReminderService) -> None:
+    user_id = message.from_user.id
+    _clear_pending(user_id)
+    await add_reminder(message, scheduler, message.text or "")
+
+
 @router.callback_query(F.data.startswith("quick:"))
 async def quick_callback(callback: CallbackQuery, db: Database) -> None:
-    """Esegue direttamente i comandi rapidi, senza testi informativi."""
+    """Esegue le azioni rapide: Stats/Docker subito, Nota/Promemoria chiedono l'input."""
     action = callback.data.split(":", 1)[1]
 
     if callback.message is None:
@@ -149,11 +233,11 @@ async def quick_callback(callback: CallbackQuery, db: Database) -> None:
     if action == "stats":
         await send_stats(message)
     elif action == "notes":
-        await send_notes_list(message, db, user_id)
+        await _ask_for_note(message, user_id)
     elif action == "docker":
         await send_docker_status(message)
     elif action == "reminders":
-        await send_reminders_list(message, db)
+        await _ask_for_reminder(message, user_id)
     else:
         await callback.answer("Azione sconosciuta.", show_alert=True)
         return
