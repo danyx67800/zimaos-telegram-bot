@@ -57,10 +57,15 @@ async def _stats_text() -> str:
     return "\n".join(lines)
 
 
-@router.message(Command("stats"))
-async def cmd_stats(message: Message) -> None:
+async def send_stats(message: Message) -> None:
+    """Invia il report di sistema (usato da /stats e dal menù rapido)."""
     await message.answer("⏳ Raccolgo le metriche di sistema…")
     await message.answer(await _stats_text(), reply_markup=_refresh_keyboard())
+
+
+@router.message(Command("stats"))
+async def cmd_stats(message: Message) -> None:
+    await send_stats(message)
 
 
 @router.callback_query(F.data == "refresh:stats")

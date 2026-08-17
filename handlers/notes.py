@@ -20,7 +20,7 @@ USAGE = (
 )
 
 
-async def _list_notes(message: Message, db: Database, user_id: int) -> None:
+async def send_notes_list(message: Message, db: Database, user_id: int) -> None:
     notes = db.list_notes(user_id)
     if not notes:
         await message.answer(
@@ -63,7 +63,7 @@ async def cmd_notes(
     args = (command.args or "").strip()
 
     if not args:
-        await _list_notes(message, db, user_id)
+        await send_notes_list(message, db, user_id)
         return
 
     parts = args.split(maxsplit=1)

@@ -13,8 +13,8 @@ from utils import docker_stats
 router = Router(name="docker")
 
 
-@router.message(Command("docker"))
-async def cmd_docker(message: Message) -> None:
+async def send_docker_status(message: Message) -> None:
+    """Invia lo stato dei container (usato da /docker e dal menù rapido)."""
     if not docker_stats.is_available():
         await message.answer(
             "🐳 <b>Socket Docker non disponibile</b>\n\n"
@@ -48,3 +48,8 @@ async def cmd_docker(message: Message) -> None:
         lines.append(f"{icon} <b>{name}</b> <i>({image})</i>\n   {status}")
 
     await message.answer("\n".join(lines))
+
+
+@router.message(Command("docker"))
+async def cmd_docker(message: Message) -> None:
+    await send_docker_status(message)

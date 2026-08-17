@@ -1,4 +1,4 @@
-"""Gestori generali: /start, /help e navigazione della tastiera in-line."""
+"""Gestori generali: /start, /help, menu in-line e azioni rapide."""
 
 from __future__ import annotations
 
@@ -11,11 +11,17 @@ from aiogram.types import (
     Message,
 )
 
+from handlers.docker_handler import send_docker_status
+from handlers.notes import send_notes_list
+from handlers.reminders import send_reminders_list
+from handlers.sysinfo import send_stats
+from utils.db import Database
+
 router = Router(name="general")
 
 WELCOME_TEXT = (
     "👋 <b>Ciao! Sono il tuo assistente privato per ZimaOS.</b>\n\n"
-    "Scegli una sezione dalla tastiera qui sotto, oppure usa i comandi:\n"
+    "Usa i pulsanti ⚡ per eseguire subito un comando, oppure scrivi:\n"
     "📊 <code>/stats</code> — monitoraggio di sistema\n"
     "📝 <code>/notes</code> — note rapide e link\n"
     "📶 <code>/ping</code> — latenza di un host/URL\n"
@@ -25,7 +31,9 @@ WELCOME_TEXT = (
     "📄 <code>/paste</code> — pastebin e gestione log"
 )
 
-# Descrizioni mostrate quando si preme un pulsante della sezione.
+# Descrizioni mostrate quando si preme un pulsante "guida" della sezione.
+# Le voci stats/notes/docker restano per compatibilità con vecchie tastiere
+# (ora sono pulsanti rapidi ⚡ che eseguono direttamente il comando).
 SECTION_INFO = {
     "stats": (
         "📊 <b>Monitoraggio di sistema</b>\n\n"
@@ -86,19 +94,22 @@ SECTION_INFO = {
 def _menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
+            # ⚡ Azioni rapide: eseguono subito il comando.
             [
-                InlineKeyboardButton(text="📊 Statistiche", callback_data="section:stats"),
-                InlineKeyboardButton(text="📝 Note", callback_data="section:notes"),
+                InlineKeyboardButton(text="⚡ Stats", callback_data="quick:stats"),
+                InlineKeyboardButton(text="⚡ Note", callback_data="quick:notes"),
             ],
+            [
+                InlineKeyboardButton(text="⚡ Docker", callback_data="quick:docker"),
+                InlineKeyboardButton(text="⚡ Promemoria", callback_data="quick:reminders"),
+            ],
+            # ℹ️ Guide per i comandi che richiedono argomenti.
             [
                 InlineKeyboardButton(text="📶 Ping", callback_data="section:ping"),
-                InlineKeyboardButton(text="🐳 Docker", callback_data="section:docker"),
-            ],
-            [
                 InlineKeyboardButton(text="🎥 Download", callback_data="section:downloader"),
-                InlineKeyboardButton(text="⏰ Promemoria", callback_data="section:reminders"),
             ],
             [
+                InlineKeyboardButton(text="🕐 Remind", callback_data="section:reminders"),
                 InlineKeyboardButton(text="📄 Pastebin", callback_data="section:pastebin"),
             ],
         ]
@@ -121,6 +132,33 @@ async def cmd_start(message: Message) -> None:
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
     await message.answer(WELCOME_TEXT, reply_markup=_menu_keyboard())
+
+
+@router.callback_query(F.data.startswith("quick:"))
+async def quick_callback(callback: CallbackQuery, db: Database) -> None:
+    """Esegue direttamente i comandi rapidi, senza testi informativi."""
+    action = callback.data.split(":", 1)[1]
+
+    if callback.message is None:
+        await callback.answer("Messaggio non più disponibile.", show_alert=True)
+        return
+
+    message = callback.message
+    user_id = callback.from_user.id
+
+    if action == "stats":
+        await send_stats(message)
+    elif action == "notes":
+        await send_notes_list(message, db, user_id)
+    elif action == "docker":
+        await send_docker_status(message)
+    elif action == "reminders":
+        await send_reminders_list(message, db)
+    else:
+        await callback.answer("Azione sconosciuta.", show_alert=True)
+        return
+
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("section:"))

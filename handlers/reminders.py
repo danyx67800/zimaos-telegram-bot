@@ -116,8 +116,8 @@ async def cmd_remind_cron(
     )
 
 
-@router.message(Command("reminders", "list_reminders"))
-async def cmd_list_reminders(message: Message, db: Database) -> None:
+async def send_reminders_list(message: Message, db: Database) -> None:
+    """Invia l'elenco dei promemoria attivi (usato da /reminders e dal menù rapido)."""
     user_id = message.from_user.id
     if user_id is None:
         return
@@ -142,6 +142,11 @@ async def cmd_list_reminders(message: Message, db: Database) -> None:
     lines.append("\nPer cancellare: <code>/delremind &lt;id&gt;</code>")
 
     await message.answer("\n".join(lines))
+
+
+@router.message(Command("reminders", "list_reminders"))
+async def cmd_list_reminders(message: Message, db: Database) -> None:
+    await send_reminders_list(message, db)
 
 
 @router.message(Command("delremind"))
